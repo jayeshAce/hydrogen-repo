@@ -1,14 +1,11 @@
 import {
   createCookieSessionStorageFactory,
   createCookieFactory,
-  type SessionStorage,
-  type Session,
 } from '@remix-run/server-runtime';
-import type {SignFunction, UnsignFunction} from '@remix-run/server-runtime';
 
 const encoder = new TextEncoder();
 
-export const sign: SignFunction = async (value, secret) => {
+export const sign = async (value, secret) => {
   const data = encoder.encode(value);
   const key = await createKey(secret, ['sign']);
   const signature = await crypto.subtle.sign('HMAC', key, data);
@@ -20,7 +17,7 @@ export const sign: SignFunction = async (value, secret) => {
   return value + '.' + hash;
 };
 
-export const unsign: UnsignFunction = async (cookie, secret) => {
+export const unsign = async (cookie, secret) => {
   const value = cookie.slice(0, cookie.lastIndexOf('.'));
   const hash = cookie.slice(cookie.lastIndexOf('.') + 1);
 
@@ -32,7 +29,7 @@ export const unsign: UnsignFunction = async (cookie, secret) => {
   return valid ? value : false;
 };
 
-async function createKey(secret: string, usages: CryptoKey['usages']): Promise {
+async function createKey(secret, usages) {
   const key = await crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
@@ -44,7 +41,7 @@ async function createKey(secret: string, usages: CryptoKey['usages']): Promise {
   return key;
 }
 
-function byteStringToUint8Array(byteString: string): Uint8Array {
+function byteStringToUint8Array(byteString) {
   const array = new Uint8Array(byteString.length);
 
   for (let i = 0; i < byteString.length; i++) {
@@ -54,18 +51,13 @@ function byteStringToUint8Array(byteString: string): Uint8Array {
   return array;
 }
 
-/**
- * This is a custom session implementation for your Hydrogen shop.
- * Feel free to customize it to your needs, add helper methods, or
- * swap out the cookie-based implementation with something else!
- */
 export class HydrogenSession {
-  constructor(
-    private sessionStorage: SessionStorage,
-    private session: Session,
-  ) {}
+  constructor(sessionStorage, session) {
+    this.sessionStorage = sessionStorage;
+    this.session = session;
+  }
 
-  static async init(request: Request, secrets: string[]) {
+  static async init(request, secrets) {
     const createCookie = createCookieFactory({sign, unsign});
     const createCookieSessionStorage =
       createCookieSessionStorageFactory(createCookie);
@@ -84,7 +76,7 @@ export class HydrogenSession {
     return new this(storage, session);
   }
 
-  get(key: string) {
+  get(key) {
     return this.session.get(key);
   }
 
@@ -92,15 +84,15 @@ export class HydrogenSession {
     return this.sessionStorage.destroySession(this.session);
   }
 
-  flash(key: string, value: any) {
+  flash(key, value) {
     this.session.flash(key, value);
   }
 
-  unset(key: string) {
+  unset(key) {
     this.session.unset(key);
   }
 
-  set(key: string, value: any) {
+  set(key, value) {
     this.session.set(key, value);
   }
 
